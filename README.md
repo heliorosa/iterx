@@ -1,0 +1,2 @@
+# iterx
+iterators for Go

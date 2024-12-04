@@ -270,6 +270,24 @@ func Fold[T any](seq iter.Seq[T], reducer func(T, T) T) T {
 	return z
 }
 
+func Chunks[T any](seq iter.Seq[T], n int) iter.Seq[[]T] {
+	return func(yield func([]T) bool) {
+		r := make([]T, 0, n)
+		for i := range seq {
+			r = append(r, i)
+			if len(r) == n {
+				if !yield(r) {
+					return
+				}
+				r = make([]T, 0, n)
+			}
+		}
+		if len(r) != 0 {
+			yield(r)
+		}
+	}
+}
+
 func when[T any](cond bool, vTrue T, vFalse T) T {
 	if cond {
 		return vTrue

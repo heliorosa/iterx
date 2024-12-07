@@ -5,6 +5,7 @@ import (
 	"maps"
 	"slices"
 	"strconv"
+	"sync"
 	"testing"
 
 	"github.com/heliorosa/iterx"
@@ -178,4 +179,50 @@ func TestLimit(t *testing.T) {
 
 func TestLimit2(t *testing.T) {
 	require.Equal(t, 2, iterLen2(iterx.Limit2(mSeq, 2)))
+}
+
+func TestChunks(t *testing.T) {
+	chunks := slices.Collect(iterx.Chunks(sSeq, 2))
+	require.Len(t, chunks, 2)
+	require.Equal(t, S[:2], chunks[0])
+	require.Equal(t, S[2:], chunks[1])
+}
+
+func TestGenerate(t *testing.T) {
+	require.Equal(t, []int{0, 2, 4, 6}, slices.Collect(iterx.Generate(0, 8, 2)))
+}
+
+func TestGenerateInfinite(t *testing.T) {
+	c := make([]int, 0, 4)
+	for i := range iterx.GenerateInfinite(0, 2) {
+		c = append(c, i)
+		if len(c) == 4 {
+			break
+		}
+	}
+	require.Equal(t, []int{0, 2, 4, 6}, c)
+}
+
+func TestGo(t *testing.T) {
+	c := make([]int, 0, len(S))
+	mtx := &sync.RWMutex{}
+	wg := iterx.Go(sSeq, func(v int) {
+		mtx.Lock()
+		defer mtx.Unlock()
+		c = append(c, v)
+	})
+	wg.Wait()
+	require.Equal(t, S, slices.Sorted(slices.Values(c)))
+}
+
+func TestGo2(t *testing.T) {
+	m := make(map[int]string, len(M))
+	mtx := &sync.RWMutex{}
+	wg := iterx.Go2(mSeq, func(k int, v string) {
+		mtx.Lock()
+		defer mtx.Unlock()
+		m[k] = v
+	})
+	wg.Wait()
+	require.Equal(t, M, m)
 }

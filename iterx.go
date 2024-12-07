@@ -4,6 +4,7 @@ import (
 	"cmp"
 	"iter"
 	"slices"
+	"sync"
 
 	"golang.org/x/exp/constraints"
 )
@@ -286,6 +287,50 @@ func Chunks[T any](seq iter.Seq[T], n int) iter.Seq[[]T] {
 			yield(r)
 		}
 	}
+}
+
+func Generate(start int, stop int, step int) iter.Seq[int] {
+	return func(yield func(int) bool) {
+		for i := start; i < stop; i += step {
+			if !yield(i) {
+				return
+			}
+		}
+	}
+}
+
+func GenerateInfinite(start int, step int) iter.Seq[int] {
+	return func(yield func(int) bool) {
+		for i := start; ; i += step {
+			if !yield(i) {
+				return
+			}
+		}
+	}
+}
+
+func Go[T any](seq iter.Seq[T], f func(v T)) *sync.WaitGroup {
+	wg := &sync.WaitGroup{}
+	for i := range seq {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			f(i)
+		}()
+	}
+	return wg
+}
+
+func Go2[K, V any](seq iter.Seq2[K, V], f func(k K, v V)) *sync.WaitGroup {
+	wg := &sync.WaitGroup{}
+	for k, v := range seq {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			f(k, v)
+		}()
+	}
+	return wg
 }
 
 func when[T any](cond bool, vTrue T, vFalse T) T {
